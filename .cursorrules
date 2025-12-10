@@ -1,0 +1,174 @@
+# Regras do Projeto Jira Clone
+
+## Estrutura de Pastas e Organização
+
+### Features (Funcionalidades)
+- Cada feature deve ter sua própria pasta em `src/features/`
+- Estrutura padrão para cada feature:
+  ```
+  src/features/[feature-name]/
+  ├── api/           # Hooks de API (React Query)
+  ├── components/    # Componentes específicos da feature
+  ├── hooks/         # Hooks customizados da feature
+  ├── server/        # Rotas da API (Hono)
+  ├── types.ts       # Tipos TypeScript
+  ├── schemas.ts     # Schemas de validação (Zod)
+  ├── utils.ts       # Utilitários da feature
+  ├── queries.ts     # Configurações de queries
+  └── constants.ts   # Constantes da feature
+  ```
+
+### Componentes
+- **UI Components**: Sempre usar componentes do shadcn/ui em `src/components/ui/`
+- **Modais**: SEMPRE usar o componente `ResponsiveModal` de `@/components/responsive-modal`
+- **Componentes Globais**: Colocar em `src/components/`
+- **Componentes de Feature**: Colocar em `src/features/[feature]/components/`
+
+## Padrões de Código
+
+### Nomenclatura
+- **Arquivos**: kebab-case (ex: `create-task-modal.tsx`)
+- **Componentes**: PascalCase (ex: `CreateTaskModal`)
+- **Hooks**: camelCase com prefixo `use` (ex: `useCreateTask`)
+- **Tipos**: PascalCase (ex: `Task`, `TaskStatus`)
+- **Constantes**: UPPER_SNAKE_CASE (ex: `TASK_STATUS`)
+
+### Imports
+- Sempre usar imports absolutos com `@/`
+- Ordem dos imports:
+  1. Bibliotecas externas
+  2. Imports internos do projeto
+  3. Imports relativos
+
+### Componentes React
+- Usar `"use client"` apenas quando necessário
+- Preferir componentes funcionais
+- Usar TypeScript para todos os componentes
+- Sempre tipar props com interfaces
+
+### API e Estado
+- Usar React Query para gerenciamento de estado
+- Hooks de API devem seguir o padrão `use[Action][Resource]`
+- Sempre incluir tratamento de erro e loading states
+- Usar toast para feedback do usuário
+
+### Validação
+- Usar Zod para validação de schemas
+- Schemas devem estar em `schemas.ts` dentro da feature
+- Mensagens de erro em português
+
+### Modais
+- SEMPRE usar `ResponsiveModal` para modais
+- Hooks de modal devem usar `nuqs` para estado na URL
+- Padrão de nomenclatura: `use[Action][Resource]Modal`
+
+### Estilização
+- Usar Tailwind CSS
+- Preferir classes utilitárias do Tailwind
+- Usar `cn()` para combinação de classes
+- Seguir design system do shadcn/ui
+
+### Segurança
+- Sempre validar dados no servidor
+- Usar middleware de autenticação
+- Verificar permissões antes de operações
+- Sanitizar inputs do usuário
+
+### Performance
+- Usar React.memo quando apropriado
+- Implementar lazy loading para componentes pesados
+- Otimizar queries do React Query
+- Usar Suspense para loading states
+
+## Tecnologias e Bibliotecas
+
+### Obrigatórias
+- **UI**: shadcn/ui + Tailwind CSS
+- **Estado**: React Query (TanStack Query)
+- **Validação**: Zod
+- **API**: Hono
+- **Modais**: ResponsiveModal (custom)
+- **Notificações**: Sonner
+- **URL State**: nuqs
+
+### Padrões de Desenvolvimento
+- Clean Code
+- Princípios SOLID
+- DRY (Don't Repeat Yourself)
+- KISS (Keep It Simple, Stupid)
+
+## Exemplos de Implementação
+
+### Modal
+```tsx
+"use client";
+
+import { ResponsiveModal } from "@/components/responsive-modal";
+import { useCreateTaskModal } from "../hooks/use-create-task-modal";
+import { CreateTaskFormWrapper } from "./create-task-form-wrapper";
+
+export const CreateTaskModal = () => {
+  const { isOpen, setIsOpen, close } = useCreateTaskModal();
+
+  return (
+    <ResponsiveModal open={isOpen} onOpenChange={setIsOpen}>
+      <CreateTaskFormWrapper onCancel={close} />
+    </ResponsiveModal>
+  );
+};
+```
+
+### Hook de API
+```tsx
+import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { client } from "@/lib/rpc";
+
+export const useCreateTask = () => {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (data) => {
+      const response = await client.api.tasks["$post"]({ json: data });
+      if (!response.ok) throw new Error("Erro ao criar tarefa");
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast.success("Tarefa criada com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: () => {
+      toast.error("Erro ao criar tarefa");
+    },
+  });
+
+  return mutation;
+};
+```
+
+### Schema de Validação
+```tsx
+import { z } from "zod";
+
+export const createTaskSchema = z.object({
+  name: z.string().trim().min(1, "Campo nome é obrigatório"),
+  status: z.nativeEnum(TaskStatus),
+  workspaceId: z.string(),
+  projectId: z.string(),
+  assigneeId: z.string(),
+  dueDate: z.string().optional(),
+});
+```
+
+## Regras Específicas
+
+1. **NUNCA criar modais sem usar ResponsiveModal**
+2. **SEMPRE usar componentes shadcn/ui quando disponíveis**
+3. **SEMPRE seguir a estrutura de pastas estabelecida**
+4. **SEMPRE tipar props e retornos de funções**
+5. **SEMPRE incluir tratamento de erro**
+6. **SEMPRE usar mensagens em português**
+7. **SEMPRE validar dados no servidor**
+8. **SEMPRE usar React Query para estado global**
+9. **SEMPRE usar nuqs para estado de modais**
+10. **SEMPRE usar toast para feedback** 
