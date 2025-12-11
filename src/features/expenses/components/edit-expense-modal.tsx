@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { format } from "date-fns";
 import { ResponsiveModal } from "@/src/components/responsive-modal";
 import { useEditExpenseModal } from "../hooks/use-edit-expense-modal";
 import { useUpdateExpense } from "../api/use-update-expense";
@@ -32,7 +31,9 @@ export function EditExpenseModal() {
   return (
     <ResponsiveModal
       open={isOpen}
-      onOpenChange={setExpenseId}
+      onOpenChange={(open) => {
+        if (!open) close();
+      }}
       title="Editar Despesa"
     >
       <div className="space-y-4">
@@ -53,16 +54,7 @@ export function EditExpenseModal() {
           <ExpenseForm
             onSubmit={handleSubmit}
             onCancel={close}
-            defaultValues={{
-              title: expense.title,
-              amount: expense.amount,
-              categoryId: expense.categoryId,
-              dueDate: format(new Date(expense.dueDate), "yyyy-MM-dd"),
-              installments: expense.installments,
-              isFixed: expense.isFixed,
-              status: expense.status,
-              description: expense.description || "",
-            }}
+            defaultValues={expense}
             isLoading={isPending}
           />
         )}

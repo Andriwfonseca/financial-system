@@ -6,9 +6,7 @@ export const createCategorySchema = z.object({
   color: z
     .string()
     .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Cor inválida. Use formato hexadecimal (ex: #FF5733)"),
-  type: z.nativeEnum(CategoryType, {
-    errorMap: () => ({ message: "Tipo de categoria inválido" }),
-  }),
+  type: z.nativeEnum(CategoryType),
 });
 
 export const updateCategorySchema = createCategorySchema.extend({
