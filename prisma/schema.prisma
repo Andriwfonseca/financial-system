@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CategoryType {
+  INCOME  // Entrada
+  EXPENSE // Saída
+}
+
+enum TransactionStatus {
+  PENDING // Pendente
+  PAID    // Pago
+  OVERDUE // Vencido
+}
+
+// Tabela de Categorias
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  color     String       // Cor em hexadecimal (#FF5733)
+  type      CategoryType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Relações
+  expenses Expense[]
+  incomes  Income[]
+
+  @@map("categories")
+}
+
+// Tabela de Contas (Despesas)
+model Expense {
+  id             String            @id @default(cuid())
+  title          String
+  amount         Float
+  categoryId     String
+  dueDate        DateTime
+  installments   Int               @default(1) // Número de parcelas
+  isFixed        Boolean           @default(false) // Conta fixa?
+  status         TransactionStatus @default(PENDING)
+  paidAt         DateTime? // Data de pagamento
+  description    String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // Relações
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+// Tabela de Ganhos (Receitas)
+model Income {
+  id          String            @id @default(cuid())
+  title       String
+  amount      Float
+  categoryId  String
+  receiveDate DateTime // Data de receber
+  status      TransactionStatus @default(PENDING)
+  receivedAt  DateTime? // Data que foi recebido
+  description String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relações
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("incomes")
+}
