@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/src/lib/prisma";
+import { parseLocalDate } from "@/src/lib/utils";
 import { TransactionStatus } from "@prisma/client";
 import {
   createIncomeSchema,
@@ -17,7 +18,7 @@ export async function createIncome(data: CreateIncomeInput) {
     const income = await prisma.income.create({
       data: {
         ...validated,
-        receiveDate: new Date(validated.receiveDate),
+        receiveDate: parseLocalDate(validated.receiveDate),
       },
       include: { category: true },
     });
@@ -39,8 +40,8 @@ export async function updateIncome(data: UpdateIncomeInput) {
       where: { id },
       data: {
         ...updateData,
-        receiveDate: new Date(updateData.receiveDate),
-        receivedAt: receivedAt ? new Date(receivedAt) : null,
+        receiveDate: parseLocalDate(updateData.receiveDate),
+        receivedAt: receivedAt ? parseLocalDate(receivedAt) : null,
       },
       include: { category: true },
     });
@@ -114,4 +115,3 @@ export async function getIncomeById(id: string) {
     return { success: false, error: "Erro ao buscar receita" };
   }
 }
-

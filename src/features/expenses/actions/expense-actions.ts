@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/src/lib/prisma";
+import { parseLocalDate } from "@/src/lib/utils";
 import { TransactionStatus } from "@prisma/client";
 import {
   createExpenseSchema,
@@ -21,7 +22,7 @@ export async function createExpense(data: CreateExpenseInput) {
     const expense = await prisma.expense.create({
       data: {
         ...validated,
-        dueDate: new Date(validated.dueDate),
+        dueDate: parseLocalDate(validated.dueDate),
       },
       include: {
         category: true,
@@ -46,8 +47,8 @@ export async function updateExpense(data: UpdateExpenseInput) {
       where: { id },
       data: {
         ...updateData,
-        dueDate: new Date(updateData.dueDate),
-        paidAt: paidAt ? new Date(paidAt) : null,
+        dueDate: parseLocalDate(updateData.dueDate),
+        paidAt: paidAt ? parseLocalDate(paidAt) : null,
       },
       include: {
         category: true,
@@ -86,7 +87,9 @@ export async function markExpenseAsPaid(data: MarkAsPaidInput) {
       where: { id: validated.id },
       data: {
         status: TransactionStatus.PAID,
-        paidAt: validated.paidAt ? new Date(validated.paidAt) : new Date(),
+        paidAt: validated.paidAt
+          ? parseLocalDate(validated.paidAt)
+          : new Date(),
       },
       include: {
         category: true,

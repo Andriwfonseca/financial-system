@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,6 +18,7 @@ import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import { Switch } from "@/src/components/ui/switch";
+import { ConfirmDialog } from "@/src/components/confirm-dialog";
 
 import { useGetExpenses } from "../api/use-get-expenses";
 import { useDeleteExpense } from "../api/use-delete-expense";
@@ -38,13 +40,29 @@ export function ExpensesTable({
   monthFilter = "all",
 }: ExpensesTableProps) {
   const { data: expenses, isLoading } = useGetExpenses();
-  const { mutate: deleteExpense } = useDeleteExpense();
+  const { mutate: deleteExpense, isPending: isDeleting } = useDeleteExpense();
   const { mutate: togglePaid } = useToggleExpensePaid();
   const { open: openEditModal } = useEditExpenseModal();
 
-  const handleDelete = (id: string) => {
-    if (confirm("Tem certeza que deseja deletar esta despesa?")) {
-      deleteExpense(id);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+
+  const handleDeleteClick = (id: string, title: string) => {
+    setExpenseToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (expenseToDelete) {
+      deleteExpense(expenseToDelete.id, {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setExpenseToDelete(null);
+        },
+      });
     }
   };
 
@@ -112,100 +130,119 @@ export function ExpensesTable({
   }
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px]">Pago</TableHead>
-            <TableHead>Título</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Valor</TableHead>
-            <TableHead>Vencimento</TableHead>
-            <TableHead>Parcelas</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredExpenses.map((expense: ExpenseWithCategory) => (
-            <TableRow key={expense.id}>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={expense.status === TransactionStatus.PAID}
-                    onCheckedChange={() =>
-                      handleTogglePaid(expense.id, expense.status)
-                    }
-                    id={`expense-paid-${expense.id}`}
-                    title={
-                      expense.status === TransactionStatus.PAID
-                        ? "Marcar como pendente"
-                        : "Marcar como pago"
-                    }
-                  />
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">
-                {expense.title}
-                {expense.isFixed && (
-                  <Badge variant="outline" className="ml-2 text-xs">
-                    Fixa
-                  </Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: expense.category.color }}
-                  />
-                  {expense.category.name}
-                </div>
-              </TableCell>
-              <TableCell>{formatCurrency(expense.amount)}</TableCell>
-              <TableCell>
-                {format(new Date(expense.dueDate), "dd/MM/yyyy", {
-                  locale: ptBR,
-                })}
-              </TableCell>
-              <TableCell>{expense.installments}x</TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    expense.status === TransactionStatus.PAID
-                      ? "default"
-                      : expense.status === TransactionStatus.OVERDUE
-                      ? "destructive"
-                      : "secondary"
-                  }
-                >
-                  {expense.status === TransactionStatus.PAID && "Pago"}
-                  {expense.status === TransactionStatus.PENDING && "Pendente"}
-                  {expense.status === TransactionStatus.OVERDUE && "Vencido"}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => openEditModal(expense.id)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleDelete(expense.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
+    <>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px]">Pago</TableHead>
+              <TableHead>Título</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead>Parcelas</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {filteredExpenses.map((expense: ExpenseWithCategory) => (
+              <TableRow key={expense.id}>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={expense.status === TransactionStatus.PAID}
+                      onCheckedChange={() =>
+                        handleTogglePaid(expense.id, expense.status)
+                      }
+                      id={`expense-paid-${expense.id}`}
+                      title={
+                        expense.status === TransactionStatus.PAID
+                          ? "Marcar como pendente"
+                          : "Marcar como pago"
+                      }
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">
+                  {expense.title}
+                  {expense.isFixed && (
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      Fixa
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: expense.category.color }}
+                    />
+                    {expense.category.name}
+                  </div>
+                </TableCell>
+                <TableCell>{formatCurrency(expense.amount)}</TableCell>
+                <TableCell>
+                  {format(new Date(expense.dueDate), "dd/MM/yyyy", {
+                    locale: ptBR,
+                  })}
+                </TableCell>
+                <TableCell>{expense.installments}x</TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      expense.status === TransactionStatus.PAID
+                        ? "default"
+                        : expense.status === TransactionStatus.OVERDUE
+                        ? "destructive"
+                        : "secondary"
+                    }
+                  >
+                    {expense.status === TransactionStatus.PAID && "Pago"}
+                    {expense.status === TransactionStatus.PENDING && "Pendente"}
+                    {expense.status === TransactionStatus.OVERDUE && "Vencido"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => openEditModal(expense.id)}
+                      title="Editar despesa"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteClick(expense.id, expense.title)}
+                      title="Excluir despesa"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Despesa"
+        description={
+          expenseToDelete
+            ? `Tem certeza que deseja excluir a despesa "${expenseToDelete.title}"? Esta ação não pode ser desfeita.`
+            : ""
+        }
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+      />
+    </>
   );
 }
