@@ -3,7 +3,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 
 import {
   Form,
@@ -24,21 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/src/components/ui/popover";
-import { Calendar } from "@/src/components/ui/calendar";
-import { cn } from "@/src/lib/utils";
 
 import { useGetCategories } from "@/src/features/categories/api/use-get-categories";
 import {
   createExpenseSchema,
   type CreateExpenseInput,
+  type CreateExpenseFormInput,
 } from "../schemas/expense-schema";
 import type { ExpenseWithCategory } from "@/src/lib/types";
-import { CategoryType } from "@prisma/client";
+import { CategoryType, TransactionStatus } from "@prisma/client";
 
 interface ExpenseFormProps {
   onSubmit: (data: CreateExpenseInput) => void;
@@ -59,7 +52,7 @@ export function ExpenseForm({
     (cat) => cat.type === CategoryType.EXPENSE
   );
 
-  const form = useForm<CreateExpenseInput>({
+  const form = useForm<CreateExpenseFormInput>({
     resolver: zodResolver(createExpenseSchema),
     defaultValues: defaultValues
       ? {
@@ -69,22 +62,32 @@ export function ExpenseForm({
           dueDate: format(new Date(defaultValues.dueDate), "yyyy-MM-dd"),
           installments: defaultValues.installments,
           isFixed: defaultValues.isFixed,
+          status: defaultValues.status,
           description: defaultValues.description || "",
         }
       : {
           title: "",
-          amount: 0,
+          amount: "" as unknown as number,
           categoryId: "",
           dueDate: format(new Date(), "yyyy-MM-dd"),
-          installments: 1,
+          installments: "1" as unknown as number,
           isFixed: false,
+          status: TransactionStatus.PENDING,
           description: "",
         },
   });
 
+  const handleFormSubmit = (data: CreateExpenseFormInput) => {
+    // Garante que os dados estão no formato correto antes de enviar
+    onSubmit(data as CreateExpenseInput);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-6">
+      <form
+        onSubmit={form.handleSubmit(handleFormSubmit)}
+        className="space-y-4 p-6"
+      >
         <FormField
           control={form.control}
           name="title"
@@ -92,7 +95,11 @@ export function ExpenseForm({
             <FormItem>
               <FormLabel>Título</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Ex: Conta de luz" disabled={isLoading} />
+                <Input
+                  {...field}
+                  placeholder="Ex: Conta de luz"
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -108,11 +115,14 @@ export function ExpenseForm({
                 <FormLabel>Valor (R$)</FormLabel>
                 <FormControl>
                   <Input
-                    {...field}
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                     disabled={isLoading}
+                    value={field.value as number}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
                   />
                 </FormControl>
                 <FormMessage />
@@ -127,7 +137,15 @@ export function ExpenseForm({
               <FormItem>
                 <FormLabel>Parcelas</FormLabel>
                 <FormControl>
-                  <Input {...field} type="number" min="1" disabled={isLoading} />
+                  <Input
+                    type="number"
+                    min="1"
+                    disabled={isLoading}
+                    value={field.value as number}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -141,7 +159,11 @@ export function ExpenseForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoria</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoading}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a categoria" />
@@ -209,7 +231,11 @@ export function ExpenseForm({
             <FormItem>
               <FormLabel>Descrição (opcional)</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="Observações..." disabled={isLoading} />
+                <Textarea
+                  {...field}
+                  placeholder="Observações..."
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -218,7 +244,12 @@ export function ExpenseForm({
 
         <div className="flex gap-2 justify-end pt-4">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isLoading}
+            >
               Cancelar
             </Button>
           )}
@@ -230,4 +261,3 @@ export function ExpenseForm({
     </Form>
   );
 }
-

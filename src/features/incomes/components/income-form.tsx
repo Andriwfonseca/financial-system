@@ -28,8 +28,10 @@ import { useGetCategories } from "@/src/features/categories/api/use-get-categori
 import {
   createIncomeSchema,
   type CreateIncomeInput,
+  type CreateIncomeFormInput,
 } from "../schemas/income-schema";
 import type { IncomeWithCategory } from "@/src/lib/types";
+import { TransactionStatus } from "@prisma/client";
 
 interface IncomeFormProps {
   onSubmit: (data: CreateIncomeInput) => void;
@@ -50,28 +52,41 @@ export function IncomeForm({
     (cat) => cat.type === CategoryType.INCOME
   );
 
-  const form = useForm<CreateIncomeInput>({
+  const form = useForm<CreateIncomeFormInput>({
     resolver: zodResolver(createIncomeSchema),
     defaultValues: defaultValues
       ? {
           title: defaultValues.title,
           amount: defaultValues.amount,
           categoryId: defaultValues.categoryId,
-          receiveDate: format(new Date(defaultValues.receiveDate), "yyyy-MM-dd"),
+          receiveDate: format(
+            new Date(defaultValues.receiveDate),
+            "yyyy-MM-dd"
+          ),
+          status: defaultValues.status,
           description: defaultValues.description || "",
         }
       : {
           title: "",
-          amount: 0,
+          amount: "" as unknown as number,
           categoryId: "",
           receiveDate: format(new Date(), "yyyy-MM-dd"),
+          status: TransactionStatus.PENDING,
           description: "",
         },
   });
 
+  const handleFormSubmit = (data: CreateIncomeFormInput) => {
+    // Garante que os dados estão no formato correto antes de enviar
+    onSubmit(data as CreateIncomeInput);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-6">
+      <form
+        onSubmit={form.handleSubmit(handleFormSubmit)}
+        className="space-y-4 p-6"
+      >
         <FormField
           control={form.control}
           name="title"
@@ -79,7 +94,11 @@ export function IncomeForm({
             <FormItem>
               <FormLabel>Título</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Ex: Salário" disabled={isLoading} />
+                <Input
+                  {...field}
+                  placeholder="Ex: Salário"
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -94,11 +113,14 @@ export function IncomeForm({
               <FormLabel>Valor (R$)</FormLabel>
               <FormControl>
                 <Input
-                  {...field}
                   type="number"
                   step="0.01"
                   placeholder="0.00"
                   disabled={isLoading}
+                  value={field.value as number}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
                 />
               </FormControl>
               <FormMessage />
@@ -112,7 +134,11 @@ export function IncomeForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoria</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isLoading}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a categoria" />
@@ -158,7 +184,11 @@ export function IncomeForm({
             <FormItem>
               <FormLabel>Descrição (opcional)</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="Observações..." disabled={isLoading} />
+                <Textarea
+                  {...field}
+                  placeholder="Observações..."
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -167,7 +197,12 @@ export function IncomeForm({
 
         <div className="flex gap-2 justify-end pt-4">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isLoading}
+            >
               Cancelar
             </Button>
           )}
@@ -179,4 +214,3 @@ export function IncomeForm({
     </Form>
   );
 }
-

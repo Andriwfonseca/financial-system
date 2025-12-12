@@ -4,12 +4,13 @@ import { ResponsiveModal } from "@/src/components/responsive-modal";
 import { useCreateExpenseModal } from "../hooks/use-create-expense-modal";
 import { useCreateExpense } from "../api/use-create-expense";
 import { ExpenseForm } from "./expense-form";
+import { CreateExpenseInput } from "../schemas/expense-schema";
 
 export function CreateExpenseModal() {
   const { isOpen, close, setIsOpen } = useCreateExpenseModal();
   const { mutate, isPending } = useCreateExpense();
 
-  const handleSubmit = (data: any) => {
+  const handleSubmit = (data: CreateExpenseInput) => {
     mutate(data, {
       onSuccess: () => {
         close();

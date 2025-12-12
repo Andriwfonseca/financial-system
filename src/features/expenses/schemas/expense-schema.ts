@@ -3,10 +3,10 @@ import { TransactionStatus } from "@prisma/client";
 
 export const createExpenseSchema = z.object({
   title: z.string().trim().min(1, "Título é obrigatório"),
-  amount: z.number().positive("Valor deve ser maior que zero"),
+  amount: z.coerce.number().positive("Valor deve ser maior que zero"),
   categoryId: z.string().min(1, "Categoria é obrigatória"),
   dueDate: z.string().min(1, "Data de vencimento é obrigatória"),
-  installments: z
+  installments: z.coerce
     .number()
     .int()
     .min(1, "Número de parcelas deve ser no mínimo 1"),
@@ -30,7 +30,11 @@ export const togglePaidSchema = z.object({
   isPaid: z.boolean(),
 });
 
-export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
-export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
+// Tipo para os valores de saída do schema (após validação e coerção)
+export type CreateExpenseInput = z.output<typeof createExpenseSchema>;
+export type UpdateExpenseInput = z.output<typeof updateExpenseSchema>;
 export type MarkAsPaidInput = z.infer<typeof markAsPaidSchema>;
 export type TogglePaidInput = z.infer<typeof togglePaidSchema>;
+
+// Tipo para os valores de entrada do formulário (antes da coerção)
+export type CreateExpenseFormInput = z.input<typeof createExpenseSchema>;
